@@ -8,6 +8,16 @@
 <title>Meta Breakout Game</title>
 
 <style>
+#rightBtn{
+    position:relative;
+    left:-200px;  /* move left */
+    top:-20px;
+}
+#leftBtn{
+    position:relative;
+    left:100px;   /* move right */
+    top:-20px;   /* move up */
+}
 body {
     margin:0;
     overflow:hidden;
@@ -39,6 +49,28 @@ canvas {
     cursor:pointer;
     box-shadow: 0 0 20px cyan, 0 0 40px cyan inset;
 }
+
+/* ===== MOBILE CONTROLS ===== */
+#mobileControls{
+    position:fixed;
+    bottom:20px;
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    padding:0 40px;
+    pointer-events:none;
+}
+
+#mobileControls button{
+    width:70px;
+    height:70px;
+    font-size:30px;
+    border-radius:50%;
+    border:none;
+    background:white;
+    opacity:0.6;
+    pointer-events:auto;
+}
 </style>
 </head>
 
@@ -46,6 +78,12 @@ canvas {
 
 <canvas id="gameCanvas" width="800" height="600"></canvas>
 <div id="glitchCircle"></div>
+
+<!-- MOBILE ARROWS (ADDED ONLY) -->
+<div id="mobileControls">
+    <button id="leftBtn">◀</button>
+    <button id="rightBtn">▶</button>
+</div>
 
 <!-- Audio -->
 <audio id="voice1" src="voice2/illegal.mp3"></audio>
@@ -134,6 +172,13 @@ document.addEventListener("keyup", e=>{
     if(e.key==="ArrowRight") right=false;
 });
 
+// ===== MOBILE BUTTON CONTROLS (ADDED ONLY) =====
+document.getElementById("leftBtn").addEventListener("touchstart", ()=>left=true);
+document.getElementById("leftBtn").addEventListener("touchend", ()=>left=false);
+
+document.getElementById("rightBtn").addEventListener("touchstart", ()=>right=true);
+document.getElementById("rightBtn").addEventListener("touchend", ()=>right=false);
+
 // TOUCH movement
 canvas.addEventListener("touchmove",(e)=>{
     let t=e.touches[0];
@@ -206,7 +251,7 @@ function drawBricks(){
     }
 }
 
-// collision bricks
+// collision
 function collision(){
     for(let c=0;c<cols;c++){
         for(let r=0;r<rows;r++){
@@ -357,7 +402,7 @@ function restartGame(){
     bgMusic.play();
 }
 
-// FIXED BOSS HIT SOUND 🔥
+// FIXED BOSS HIT SOUND
 function playBossBark(){
     if(bossSoundLock) return;
 
@@ -417,7 +462,6 @@ function draw(){
         if(right&&paddle.x+paddle.w<canvas.width) paddle.x+=7;
     }
 
-    // BOSS HIT CHECK (FIXED SOUND)
     if(gameState==="boss" && bossCooldown<=0){
         if(ball.x>boss.x && ball.x<boss.x+boss.w &&
            ball.y>boss.y && ball.y<boss.y+boss.h){
@@ -425,7 +469,7 @@ function draw(){
             boss.hits++;
             bossCooldown=15;
 
-            playBossBark(); // 🔥 FIXED
+            playBossBark();
 
             ball.dy*=-1;
 

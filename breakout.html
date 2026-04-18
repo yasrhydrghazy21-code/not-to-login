@@ -2,22 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
 <title>Meta Breakout Game</title>
 
 <style>
-#rightBtn{
-    position:relative;
-    left:-200px;  /* move left */
-    top:-20px;
-}
-#leftBtn{
-    position:relative;
-    left:100px;   /* move right */
-    top:-20px;   /* move up */
-}
 body {
     margin:0;
     overflow:hidden;
@@ -50,26 +38,37 @@ canvas {
     box-shadow: 0 0 20px cyan, 0 0 40px cyan inset;
 }
 
-/* ===== MOBILE CONTROLS ===== */
-#mobileControls{
-    position:fixed;
-    bottom:20px;
-    width:100%;
-    display:flex;
-    justify-content:space-between;
-    padding:0 40px;
-    pointer-events:none;
+/* ===== DYNAMIC MOBILE CONTROLS ===== */
+#mobileControls {
+    position: fixed;
+    bottom: 30px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10%;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 10;
 }
 
-#mobileControls button{
-    width:70px;
-    height:70px;
-    font-size:30px;
-    border-radius:50%;
-    border:none;
-    background:white;
-    opacity:0.6;
-    pointer-events:auto;
+#mobileControls button {
+    width: 18vw;
+    height: 18vw;
+    max-width: 80px;
+    max-height: 80px;
+    min-width: 60px;
+    min-height: 60px;
+    font-size: 30px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: white;
+    opacity: 0.6;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
 }
 </style>
 </head>
@@ -79,13 +78,11 @@ canvas {
 <canvas id="gameCanvas" width="800" height="600"></canvas>
 <div id="glitchCircle"></div>
 
-<!-- MOBILE ARROWS (ADDED ONLY) -->
 <div id="mobileControls">
     <button id="leftBtn">◀</button>
     <button id="rightBtn">▶</button>
 </div>
 
-<!-- Audio -->
 <audio id="voice1" src="voice2/illegal.mp3"></audio>
 <audio id="voice2" src="voice2/game.mp3"></audio>
 <audio id="voice3" src="voice2/access.mp3"></audio>
@@ -105,7 +102,7 @@ canvas {
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Audio
+// Audio setup
 const voice1 = document.getElementById("voice1");
 const voice2 = document.getElementById("voice2");
 const voice3 = document.getElementById("voice3");
@@ -121,24 +118,19 @@ const glitchSound = document.getElementById("glitchSound");
 const loseVoice = document.getElementById("loseVoice");
 const victory = document.getElementById("victory");
 
-// volumes
 bgMusic.volume = 0.25;
 bossMusic.volume = 0.35;
 [voice1,voice2,voice3,voice4,bossIntro,bossComment,loseVoice,victory].forEach(v=>v.volume=1);
 
-// game state
+// Game State
 let gameState = "intro";
 let lives = 5;
-
 let paddle = {x:350,y:550,w:100,h:20};
 let ball = {x:400,y:540,r:10,dx:4,dy:-4};
-
 let rows=5, cols=8, bw=90, bh=20, pad=10, offT=50, offL=35;
 let bricks = [];
-
 let boss = {x:350,y:80,w:100,h:100,hits:0,shots:[]};
 let bossCooldown = 0;
-
 let bossImg = new Image();
 bossImg.src = "dog_boss.png";
 
@@ -147,7 +139,6 @@ let bossTriggered = false;
 let lostOnce = false;
 let bossSoundLock = false;
 
-// bricks
 function initBricks(){
     bricks=[];
     for(let c=0;c<cols;c++){
@@ -159,7 +150,7 @@ function initBricks(){
 }
 initBricks();
 
-// controls
+// Controls Logic
 let left=false,right=false;
 
 document.addEventListener("keydown", e=>{
@@ -172,45 +163,32 @@ document.addEventListener("keyup", e=>{
     if(e.key==="ArrowRight") right=false;
 });
 
-// ===== MOBILE BUTTON CONTROLS (ADDED ONLY) =====
-document.getElementById("leftBtn").addEventListener("touchstart", ()=>left=true);
-document.getElementById("leftBtn").addEventListener("touchend", ()=>left=false);
+// Mobile button events
+document.getElementById("leftBtn").addEventListener("touchstart", (e)=>{ e.preventDefault(); left=true; });
+document.getElementById("leftBtn").addEventListener("touchend", (e)=>{ e.preventDefault(); left=false; });
+document.getElementById("rightBtn").addEventListener("touchstart", (e)=>{ e.preventDefault(); right=true; });
+document.getElementById("rightBtn").addEventListener("touchend", (e)=>{ e.preventDefault(); right=false; });
 
-document.getElementById("rightBtn").addEventListener("touchstart", ()=>right=true);
-document.getElementById("rightBtn").addEventListener("touchend", ()=>right=false);
-
-// TOUCH movement
+// Touch movement (Direct)
 canvas.addEventListener("touchmove",(e)=>{
     let t=e.touches[0];
     let rect=canvas.getBoundingClientRect();
     let x=t.clientX-rect.left;
     paddle.x=x-paddle.w/2;
-
     if(paddle.x<0) paddle.x=0;
-    if(paddle.x+paddle.w>canvas.width)
-        paddle.x=canvas.width-paddle.w;
+    if(paddle.x+paddle.w>canvas.width) paddle.x=canvas.width-paddle.w;
 });
 
-// FIXED CLICK SYSTEM (intro + restart)
 canvas.addEventListener("click", ()=>{
-    if(gameState==="intro"){
-        playVoices();
-    }
-    else if(gameState==="gameover"){
-        restartGame();
-    }
+    if(gameState==="intro") playVoices();
+    else if(gameState==="gameover") restartGame();
 });
 
-// AI voices
 async function playVoices(){
     if(aiPlayed) return;
     aiPlayed=true;
-
     const voices=[voice1,voice2,voice3,voice4];
-    for(let v of voices){
-        await playAudio(v);
-    }
-
+    for(let v of voices){ await playAudio(v); }
     gameState="playing";
     bgMusic.currentTime=0;
     bgMusic.play();
@@ -225,7 +203,6 @@ function playAudio(audio){
     });
 }
 
-// draw
 function drawPaddle(){
     ctx.fillStyle="white";
     ctx.fillRect(Math.floor(paddle.x),paddle.y,paddle.w,paddle.h);
@@ -251,21 +228,15 @@ function drawBricks(){
     }
 }
 
-// collision
 function collision(){
     for(let c=0;c<cols;c++){
         for(let r=0;r<rows;r++){
             let b=bricks[c][r];
-            if(b.status &&
-               ball.x>b.x && ball.x<b.x+bw &&
-               ball.y>b.y && ball.y<b.y+bh){
-
+            if(b.status && ball.x>b.x && ball.x<b.x+bw && ball.y>b.y && ball.y<b.y+bh){
                 b.status=0;
                 ball.dy*=-1;
-
                 hitSound.currentTime=0;
                 hitSound.play();
-
                 checkWin();
                 return;
             }
@@ -275,22 +246,18 @@ function collision(){
 
 function checkWin(){
     if(bossTriggered) return;
-
     for(let c=0;c<cols;c++){
         for(let r=0;r<rows;r++){
             if(bricks[c][r].status) return;
         }
     }
-
     bossTriggered=true;
     bgMusic.pause();
     bossMusic.currentTime=0;
     bossMusic.play();
-
     gameState="boss";
     bossIntro.currentTime=0;
     bossIntro.play();
-
     bossIntro.onended=()=>{
         bossComment.currentTime=0;
         bossComment.play();
@@ -300,33 +267,27 @@ function checkWin(){
 function loseBall(){
     lives--;
     ball.dx=0; ball.dy=0;
-
     if(lives<=0){
         bgMusic.pause();
         bossMusic.pause();
-
         if(!lostOnce){
             lostOnce=true;
             loseVoice.currentTime=0;
             loseVoice.play();
         }
-
         gameState="gameover";
         return;
     }
-
     ball.x=paddle.x+paddle.w/2;
     ball.y=paddle.y-ball.r-1;
     ball.dx=4*(Math.random()<0.5?1:-1);
     ball.dy=-4;
 }
 
-// boss draw
 function drawBoss(){
     ctx.drawImage(bossImg,boss.x,boss.y,boss.w,boss.h);
 }
 
-// boss shoot
 function bossShoot(){
     if(Math.random()<0.02){
         boss.shots.push({x:boss.x+50,y:boss.y+100,dy:4});
@@ -335,99 +296,67 @@ function bossShoot(){
     }
 }
 
-// shots
 function drawShots(){
     ctx.fillStyle="yellow";
-
     for(let i=boss.shots.length-1;i>=0;i--){
         let s=boss.shots[i];
         s.y+=s.dy;
-
         ctx.fillRect(s.x,s.y,5,10);
-
-        if(s.y>paddle.y &&
-           s.x>paddle.x &&
-           s.x<paddle.x+paddle.w){
+        if(s.y>paddle.y && s.x>paddle.x && s.x<paddle.x+paddle.w){
             boss.shots.splice(i,1);
             loseBall();
         }
-
-        if(s.y>canvas.height)
-            boss.shots.splice(i,1);
+        if(s.y>canvas.height) boss.shots.splice(i,1);
     }
 }
 
-// GLITCH
 function glitch(){
     bgMusic.pause();
     bossMusic.pause();
-
     glitchSound.currentTime=0;
     glitchSound.play();
-
-    ball.dx=0;
-    ball.dy=0;
-
+    ball.dx=0; ball.dy=0;
     document.getElementById("glitchCircle").style.display="block";
-
     let shake=setInterval(()=>{
-        document.body.style.transform=
-        `translate(${Math.random()*20-10}px,${Math.random()*20-10}px)`;
+        document.body.style.transform=`translate(${Math.random()*20-10}px,${Math.random()*20-10}px)`;
     },50);
-
     document.getElementById("glitchCircle").onclick=()=>{
         clearInterval(shake);
         window.location.href="blank.html";
     };
 }
 
-// RESTART
 function restartGame(){
     gameState="playing";
     lives=5;
-
     paddle={x:350,y:550,w:100,h:20};
     ball={x:400,y:540,r:10,dx:4,dy:-4};
-
     boss={x:350,y:80,w:100,h:100,hits:0,shots:[]};
-
     bossTriggered=false;
     aiPlayed=false;
-
     initBricks();
-
     document.getElementById("glitchCircle").style.display="none";
-
     bgMusic.currentTime=0;
     bgMusic.play();
 }
 
-// FIXED BOSS HIT SOUND
 function playBossBark(){
     if(bossSoundLock) return;
-
     bossSoundLock=true;
-
     bossHitSound.pause();
     bossHitSound.currentTime=0;
-
     let p=bossHitSound.play();
     if(p) p.catch(()=>{});
-
     setTimeout(()=>bossSoundLock=false,100);
 }
 
-// MAIN LOOP
 function draw(){
     ctx.clearRect(0,0,800,600);
-
     ctx.fillStyle="white";
     ctx.font="20px Arial";
     ctx.fillText("Lives: "+lives,20,30);
 
-    if(gameState==="intro"){
-        ctx.fillText("Tap to start...",180,300);
-    }
+    if(gameState==="intro") ctx.fillText("Tap to start...",340,300);
 
     if(gameState==="playing"){
         drawBricks();
@@ -444,35 +373,24 @@ function draw(){
     if(gameState==="playing"||gameState==="boss"){
         drawBall();
         drawPaddle();
-
         ball.x+=ball.dx;
         ball.y+=ball.dy;
-
         if(ball.x<0||ball.x>canvas.width) ball.dx*=-1;
         if(ball.y<0) ball.dy*=-1;
         if(ball.y>canvas.height) loseBall();
-
-        if(ball.y+ball.r>paddle.y &&
-           ball.x>paddle.x &&
-           ball.x<paddle.x+paddle.w){
+        if(ball.y+ball.r>paddle.y && ball.x>paddle.x && ball.x<paddle.x+paddle.w){
             ball.dy*=-1;
         }
-
         if(left&&paddle.x>0) paddle.x-=7;
         if(right&&paddle.x+paddle.w<canvas.width) paddle.x+=7;
     }
 
     if(gameState==="boss" && bossCooldown<=0){
-        if(ball.x>boss.x && ball.x<boss.x+boss.w &&
-           ball.y>boss.y && ball.y<boss.y+boss.h){
-
+        if(ball.x>boss.x && ball.x<boss.x+boss.w && ball.y>boss.y && ball.y<boss.y+boss.h){
             boss.hits++;
             bossCooldown=15;
-
             playBossBark();
-
             ball.dy*=-1;
-
             if(boss.hits>=5){
                 gameState="glitch";
                 victory.currentTime=0;
@@ -487,18 +405,15 @@ function draw(){
     if(gameState==="gameover"){
         ctx.fillStyle="red";
         ctx.font="40px Arial";
-        ctx.fillText("GAME OVER",260,260);
-
+        ctx.fillText("GAME OVER",290,260);
         ctx.fillStyle="white";
         ctx.font="20px Arial";
-        ctx.fillText("Tap to Restart",280,320);
+        ctx.fillText("Tap to Restart",330,320);
     }
-
     requestAnimationFrame(draw);
 }
 
 draw();
 </script>
-
 </body>
 </html>

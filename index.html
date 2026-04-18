@@ -89,13 +89,6 @@ button.locked{
 <div id="loader"></div>
 <div id="msg"></div>
 <div id="secret"></div>
-<div id="caption" style="
-    margin-top:20px;
-    font-family: monospace;
-    font-size:16px;
-    color: cyan;
-    min-height:24px;
-"></div>
 
 <script>
 
@@ -104,50 +97,50 @@ let audioPlayer = new Audio();
 let audioUnlocked = false;
 let isImportantPlaying = false;
 
-// unlock
-function unlockSystem(){
+// ================= FIXED MOBILE + PC UNLOCK =================
+function firstInteraction(){
     if(audioUnlocked) return;
     audioUnlocked = true;
 
-    playVoice("voice/hey.mp3", true);
-    setTimeout(()=>playVoice("voice/foryou.mp3", true),3000);
-    setTimeout(()=>playVoice("voice/only.mp3", true),7000);
+    // 🔥 MUST play immediately (mobile fix)
+    audioPlayer.src = "voice/hey.mp3";
+    audioPlayer.play().catch(()=>{});
+
+    isImportantPlaying = true;
+
+    audioPlayer.onended = ()=>{
+        isImportantPlaying = false;
+
+        // continue intro sequence
+        playVoice("voice/foryou.mp3", true);
+        setTimeout(()=>playVoice("voice/only.mp3", true),3000);
+    };
 
     startIdle();
 }
 
-document.body.addEventListener("click", unlockSystem, {once:true});
-document.body.addEventListener("touchstart", unlockSystem, {once:true, passive:true});
-document.getElementById("email").addEventListener("focus", unlockSystem);
-document.getElementById("password").addEventListener("focus", unlockSystem);
+// events (PC + mobile)
+document.body.addEventListener("click", firstInteraction, {once:true});
+document.body.addEventListener("touchstart", firstInteraction, {once:true, passive:true});
+document.getElementById("email").addEventListener("focus", firstInteraction);
+document.getElementById("password").addEventListener("focus", firstInteraction);
 
-// FIX: returns promise to control sequence
+// ================= VOICE FUNCTION =================
 function playVoice(src, important=false){
 
-    return new Promise(resolve=>{
+    if(!audioUnlocked) return;
+    if(isImportantPlaying && !important) return;
 
-        if(!audioUnlocked){ resolve(); return; }
-        if(isImportantPlaying && !important){ resolve(); return; }
+    audioPlayer.pause();
+    audioPlayer.src = src;
 
-        audioPlayer.pause();
-        audioPlayer.src = src;
+    if(important) isImportantPlaying = true;
 
-        if(important) isImportantPlaying = true;
+    audioPlayer.play().catch(()=>{});
 
-        let p = audioPlayer.play();
-        if(p) p.catch(()=>{ resolve(); });
-
-        audioPlayer.onended = ()=>{
-            if(important) isImportantPlaying = false;
-            resolve();
-        };
-
-        audioPlayer.onerror = ()=>{
-            if(important) isImportantPlaying = false;
-            resolve();
-        };
-
-    });
+    audioPlayer.onended = ()=>{
+        if(important) isImportantPlaying = false;
+    };
 }
 
 // ================= STATES =================
@@ -155,7 +148,7 @@ let firstWrong=false;
 let locked=false;
 let clickCount=0;
 
-// ================= IDLE =================
+// ================= IDLE SYSTEM =================
 let idleVoices=[
     "voice/leave.mp3",
     "voice/suitable.mp3",
@@ -176,14 +169,14 @@ function startIdle(){
 // ================= LOGIN =================
 let btn=document.getElementById("btn");
 
-btn.onclick = async function(){
+btn.onclick=function(){
 
     let email=document.getElementById("email").value.trim();
     let pass=document.getElementById("password").value.trim();
     let msg=document.getElementById("msg");
     let loader=document.getElementById("loader");
 
-    // ✅ FIX 1: DO NOTHING if both empty
+    // empty check
     if(email === "" && pass === ""){
         return;
     }
@@ -202,14 +195,14 @@ btn.onclick = async function(){
         return;
     }
 
-    // CORRECT
+    // correct login
     if(email==="mrrisay@email.com" && pass==="password"){
 
         loader.style.display="block";
 
-        await playVoice("voice/suprised.mp3", true);
+        playVoice("voice/suprised.mp3", true);
 
-        setTimeout(async ()=>{
+        setTimeout(()=>{
 
             loader.style.display="none";
 
@@ -217,22 +210,21 @@ btn.onclick = async function(){
             btn.innerHTML="🔒 LOCKED";
             btn.classList.add("locked");
 
-            await playVoice("voice/never.mp3", true);
+            playVoice("voice/never.mp3", true);
 
         },5000);
 
         return;
     }
 
-    // WRONG
+    // wrong
     msg.innerText="Wrong. You should enter the creator email and password.";
 
     if(!firstWrong){
         firstWrong=true;
 
-        // ✅ FIX 2: NO OVERLAP (sequential)
-        await playVoice("voice/wrong.mp3", true);
-        await playVoice("voice/hint.mp3", true);
+        playVoice("voice/wrong.mp3", true);
+        setTimeout(()=>playVoice("voice/hint.mp3", true),2000);
 
         setTimeout(()=>{
             idleVoices.push("voice/email.mp3");

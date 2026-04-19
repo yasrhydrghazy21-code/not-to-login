@@ -6,6 +6,11 @@
 <title>Not A Login</title>
 
 <style>
+#tips{
+    margin-top:10px;
+    color:lime;
+    font-family:monospace;
+}
 body{
     background:#0b0b0b;
     color:#eaeaea;
@@ -88,6 +93,7 @@ button.locked{
 
 <div id="loader"></div>
 <div id="msg"></div>
+<div id="tips" style="display:none;">tips: email:mrrisay@email.com password: password</div>
 <div id="secret"></div>
 
 <script>
@@ -142,7 +148,6 @@ function playVoice(src, important=false){
         if(important) isImportantPlaying = false;
     };
 }
-
 // ================= STATES =================
 let firstWrong=false;
 let locked=false;
@@ -219,6 +224,7 @@ btn.onclick=function(){
 
     // wrong
     msg.innerText="Wrong. You should enter the creator email and password.";
+    document.getElementById("tips").style.display="block";
 
     if(!firstWrong){
         firstWrong=true;
